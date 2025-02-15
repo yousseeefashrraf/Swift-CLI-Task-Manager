@@ -1,2 +1,2 @@
-Finish and master swift basics,Pending,11/6/2005,1000
-Learn UI/UX design,Completed,12/6/2019,19
+Learn UI/UX Design,pending,11/5/2025,3
+Master SwiftUI ,pending,5/5/2026,2

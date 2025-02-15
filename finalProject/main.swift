@@ -53,7 +53,7 @@ class TaskManager {
 
 func createFile() throws -> Int32{
     let path = "/Users/youssefashraf/Downloads/finalProject/tasks.txt"
-    let fd = open(path, O_CREAT | O_EXCL, S_IRUSR | S_IRGRP)
+    let fd = open(path, O_CREAT | O_RDWR , S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)
     if fd == -1 {
         throw FileStatus.AlreadyThere
     } else {
@@ -62,12 +62,16 @@ func createFile() throws -> Int32{
 }
 
 func openFile() -> Int32{
+    let path = "/Users/youssefashraf/Downloads/finalProject/tasks.txt"
     var fd: Int32
     do {
        fd =  try createFile()
+        
     } catch {
-        fd = open(path, O_RDWR | O_EXCL, S_IRUSR | S_IRGRP )
+        
+        fd = open(path, O_RDWR )
     }
+    
     return fd
 }
 
@@ -112,6 +116,7 @@ func printDataToUser(manager: TaskManager){
         var dateInText = ""
         dateInText += "\(String(date.day ?? 0))/\(String(date.month ?? 0))/\(String(date.year ?? 0))"
         print("\(i)     \(task.value.title)", terminator: "")
+        
         for _ in task.value.title.count ..< 43 {
             print(" ", terminator: "")
         }
@@ -129,6 +134,27 @@ func printDataToUser(manager: TaskManager){
     }
 
 }
+
+func writeToFile (fd: Int32, taskManager: TaskManager){
+    ftruncate(fd, 0)
+    lseek(fd, 0, SEEK_SET)
+    var content = ""
+    
+    for task in taskManager.task {
+        let calendar = Calendar.current
+        let dueDate = calendar.dateComponents([.year, .month, .day], from: task.value.dueDate)
+
+        content += task.value.title + ","
+        content += task.value.status.rawValue + ","
+        content += "\(dueDate.day ?? 0)/\(dueDate.month ?? 0)/\(dueDate.year ?? 0),"
+        content += String(task.key) + "\n"
+    }
+    
+    let buffer = Array(content.utf8)
+    write(fd, buffer, buffer.count)
+}
+
+
 let path = "/Users/youssefashraf/Downloads/finalProject/tasks.txt"
 var fd = openFile()
 var buffer = [UInt8](repeating: 0, count: 512)
@@ -152,9 +178,42 @@ var choice = 9
 
 while choice != -1 {
     switch choice{
+    case 1:
+        print("--------------------------------------------------------------------------------------------------------" )
+        print("+ Enter id to delete ", terminator: "")
+        var id:Int
+        var foundTask: Task? = nil
+        var title: String = ""
+        repeat {
+            id = Int(readLine() ?? "") ?? -1
+            foundTask = taskManager.task[id]
+            
+            if let task = foundTask {
+                title = task.title
+              taskManager.task[id] = nil
+            } else {
+                print("Please enter a valid id: ", terminator: "")
+            }
+        } while foundTask == nil
+        print("[ Task with title: \"\(title)\" removed! ]")
+    case 3:
+        print("--------------------------------------------------------------------------------------------------------" )
+        print("+ Enter id to Mark: ", terminator: "")
+        var id:Int
+        var foundTask: Task? = nil
+        repeat {
+            id = Int(readLine() ?? "") ?? -1
+            foundTask = taskManager.task[id]
+            
+            if var task = foundTask {
+                task.status = .completed
+            } else {
+                print("Please enter a valid id: ", terminator: "")
+            }
+        } while foundTask == nil
     case 0 :
 
-        print("--------------------------------------------------------------------------------------------------------")
+        print("--------------------------------------------------------------------------------------------------------" )
         print("+     Title:       ", terminator: "")
         var title = readLine()
         print("")
@@ -212,6 +271,7 @@ while choice != -1 {
             dateComonent.day = Int(date?[0] ?? "0")
             dateComonent.month = Int(date?[1] ?? "0")
             dateComonent.year = Int(date?[2] ?? "0")
+            dueDate = calendar.date(from: dateComonent)
         }
         
          dueDate = calendar.date(from: dateComonent)
@@ -226,17 +286,21 @@ while choice != -1 {
         
         
     default:
-    print("--------------------------------------------------------------------------------------------------------")
+    break
+}
+    print("--------------------------------------------------------------------------------------------------------",terminator: "\n\n")
     print("+     Title:                                     Status:         Due Date:     |======== [ TaskId: ]  ==")
     printDataToUser(manager:taskManager)
     print(" ")
     print("--------------------------------------------------------------------------------------------------------")
     print("=| Add Task: 0 |=====| Remove Task: 1 |==============| Mark As Complete: 3 |======== [ EXIT: -1 ] ==")
     print("--------------------------------------------------------------------------------------------------------")
-}
+    writeToFile(fd: fd, taskManager: taskManager)
     if let c = Int(readLine() ?? "9"), c < 4 && c > -2 {
         choice = c
     }
+    
+    
     
     }
 
