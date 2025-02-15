@@ -21,7 +21,7 @@ enum FileStatus:Error {
     case AlreadyThere
 }
 enum TaskStatus:String {
-    case completed = "completed", pending = "pending", unknown = "unknown"
+    case completed = "Completed ✅", pending = "Pending ⭕️", unknown = "Unknown 👁️‍🗨️"
 }
 
 struct Task {
@@ -84,9 +84,9 @@ func fetchAllTask (content fullContent: String, taskManager: inout TaskManager){
         let title = tmp[0]
         var status: TaskStatus
         switch tmp[1].lowercased() {
-        case "pending":
+        case _ where tmp[1].lowercased().hasPrefix("pending"):
             status = .pending
-        case "completed":
+        case _ where tmp[1].lowercased().hasPrefix("completed"):
             status = .completed
         default:
             status = .unknown
@@ -109,6 +109,7 @@ func printDataToUser(manager: TaskManager){
 
         return
     }
+    
     var i = 1
     for task in manager.task {
         let calendar = Calendar.current
@@ -120,8 +121,9 @@ func printDataToUser(manager: TaskManager){
         for _ in task.value.title.count ..< 43 {
             print(" ", terminator: "")
         }
-        print("\(task.value.status)", terminator: "")
-        for _ in task.value.status.rawValue.count ..< 16 {
+        
+        print("\(task.value.status.rawValue)", terminator: "")
+        for _ in task.value.status.rawValue.count ..< 15 {
             print(" ", terminator: "")
         }
         print("\(date.day ?? 0)/\(date.month ?? 0)/\(date.year ?? 0)",terminator: "")
@@ -206,11 +208,12 @@ while choice != -1 {
             foundTask = taskManager.task[id]
             
             if var task = foundTask {
-                task.status = .completed
+                taskManager.task[id] = Task(title: task.title, status: .completed, dueDate: task.dueDate)
             } else {
                 print("Please enter a valid id: ", terminator: "")
             }
         } while foundTask == nil
+        print("Good job! 🥰")
     case 0 :
 
         print("--------------------------------------------------------------------------------------------------------" )
@@ -224,46 +227,55 @@ while choice != -1 {
         }
         
         print("+     Due Date: (day/month/year)       ", terminator: "")
-        var date = readLine()?.split(separator: "/")
+        var dateInGeneral = readLine()
+        var date = dateInGeneral?.split(separator: "/")
         
         var dateComonent = DateComponents()
-        dateComonent.day = Int(date?[0] ?? "0")
-        dateComonent.month = Int(date?[1] ?? "0")
-        dateComonent.year = Int(date?[2] ?? "0")
-        let calendar = Calendar.current
-        
-        while (Int(dateComonent.day ?? 0) == 0), Int(dateComonent.day ?? 0) < 0, Int(dateComonent.day ?? 0) > 31  {
-            print("Please enter a valid date: ", terminator: "")
-            date = readLine()?.split(separator: "/")
-            
-            var dateComonent = DateComponents()
+        if let dateInGeneral2 = dateInGeneral, dateInGeneral2.lowercased() != "now" && dateInGeneral2.lowercased() != "current"{
             dateComonent.day = Int(date?[0] ?? "0")
             dateComonent.month = Int(date?[1] ?? "0")
             dateComonent.year = Int(date?[2] ?? "0")
+            
+            while (Int(dateComonent.day ?? 0) == 0), Int(dateComonent.day ?? 0) < 0, Int(dateComonent.day ?? 0) > 31  {
+                print("Please enter a valid date: ", terminator: "")
+                dateInGeneral = readLine()
+                date = dateInGeneral?.split(separator: "/")
+                
+                    dateComonent.day = Int(date?[0] ?? "0")
+                    dateComonent.month = Int(date?[1] ?? "0")
+                    dateComonent.year = Int(date?[2] ?? "0")
+                
+            }
+
+            while (Int(dateComonent.month ?? 0) == 0), Int(dateComonent.month ?? 0) < 0, Int(dateComonent.month ?? 0) > 12  {
+                print("Please enter a valid month: ", terminator: "")
+                date = readLine()?.split(separator: "/")
+                
+                var dateComonent = DateComponents()
+                dateComonent.day = Int(date?[0] ?? "0")
+                dateComonent.month = Int(date?[1] ?? "0")
+                dateComonent.year = Int(date?[2] ?? "0")
+            }
+            
+            while (Int(dateComonent.year ?? 0) == 0), Int(dateComonent.day ?? 0) < 0{
+                print("Please enter a valid year: ", terminator: "")
+                date = readLine()?.split(separator: "/")
+                
+                var dateComonent = DateComponents()
+                dateComonent.day = Int(date?[0] ?? "0")
+                dateComonent.month = Int(date?[1] ?? "0")
+                dateComonent.year = Int(date?[2] ?? "0")
+            }
+            
+        }
+        else {
+            dateComonent = Calendar.current.dateComponents([.year, .month, .day], from: Date())
         }
 
-        while (Int(dateComonent.month ?? 0) == 0), Int(dateComonent.month ?? 0) < 0, Int(dateComonent.month ?? 0) > 12  {
-            print("Please enter a valid month: ", terminator: "")
-            date = readLine()?.split(separator: "/")
-            
-            var dateComonent = DateComponents()
-            dateComonent.day = Int(date?[0] ?? "0")
-            dateComonent.month = Int(date?[1] ?? "0")
-            dateComonent.year = Int(date?[2] ?? "0")
-        }
-        
-        while (Int(dateComonent.year ?? 0) == 0), Int(dateComonent.day ?? 0) < 0{
-            print("Please enter a valid year: ", terminator: "")
-            date = readLine()?.split(separator: "/")
-            
-            var dateComonent = DateComponents()
-            dateComonent.day = Int(date?[0] ?? "0")
-            dateComonent.month = Int(date?[1] ?? "0")
-            dateComonent.year = Int(date?[2] ?? "0")
-        }
+        let calendar = Calendar.current
         
         var dueDate = calendar.date(from: dateComonent)
-        while dueDate ?? Date() < Date(){
+        while dueDate ?? Date() < Date(), let dateInGeneral, dateInGeneral.lowercased() != "now" && dateInGeneral.lowercased() != "current"{
             print("Please enter a valid date: ", terminator: "")
             date = readLine()?.split(separator: "/")
             
@@ -279,6 +291,7 @@ while choice != -1 {
         
         if let dueDate = dueDate, let title = title {
             taskManager.addTask(title: title, dueDate: dueDate)
+            print("Task added! ✅")
         }
         
         
